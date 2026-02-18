@@ -1,0 +1,54 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build container image
+        run: |
+          BUILD_ID=$(gcloud builds submit \
+            --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/gevt-dashboard \
+            --async --format='value(id)' .)
+          echo "Build started: $BUILD_ID"
+          while true; do
+            STATUS=$(gcloud builds describe "$BUILD_ID" --format='value(status)')
+            echo "Status: $STATUS"
+            case $STATUS in
+              SUCCESS) break ;;
+              WORKING|QUEUED) sleep 15 ;;
+              *) echo "Build failed: $STATUS"; exit 1 ;;
+            esac
+          done
+
+      - name: Deploy to Cloud Run
+        env:
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          CLOUD_SQL_CONNECTION: ${{ secrets.CLOUD_SQL_CONNECTION }}
+        run: |
+          gcloud run deploy gevt-dashboard \
+            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/gevt-dashboard \
+            --platform managed \
+            --region europe-west2 \
+            --allow-unauthenticated \
+            --set-env-vars "^@^ENV=GCR@DB_NAME=global-ecc@DB_USER=${DB_USER}@DB_PASSWORD=${DB_PASSWORD}@DB_HOST=${DB_HOST}@CLOUD_SQL_CONNECTION=${CLOUD_SQL_CONNECTION}"

@@ -1,65 +1,164 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import Header from "@/components/layout/Header";
+import Sidebar from "@/components/layout/Sidebar";
+import Footer from "@/components/layout/Footer";
+import DatasetSelector from "@/components/controls/DatasetSelector";
+import CountrySelector from "@/components/controls/CountrySelector";
+import RollingWindowSelector from "@/components/controls/RollingWindowSelector";
+import MarketShareToggle from "@/components/controls/MarketShareToggle";
+import FuelTypeSelector from "@/components/controls/FuelTypeSelector";
+import MakeSelector from "@/components/controls/MakeSelector";
+import BacktestingSelector from "@/components/controls/BacktestingSelector";
+import ChartContainer from "@/components/charts/ChartContainer";
+import AreaChart from "@/components/charts/AreaChart";
+import MarketShareChart from "@/components/charts/MarketShareChart";
+import SCurveChart from "@/components/charts/SCurveChart";
+import TopMakesChart from "@/components/charts/TopMakesChart";
+import DownloadButton from "@/components/DownloadButton";
+
+import { useDataset } from "@/hooks/useDataset";
+import { useCountries } from "@/hooks/useCountries";
+import { useChartData } from "@/hooks/useChartData";
+import { useDownloadCSV } from "@/hooks/useDownloadCSV";
+
+import { RegistrationRow, MktShareRow, SCurveRow, TopMakesRow } from "@/lib/types";
+
+interface MktShareCountryData {
+  country: string;
+  data: MktShareRow[];
+}
+
+interface SCurveCountryData {
+  country: string;
+  data: SCurveRow[];
+}
+
+interface TopMakesData {
+  alltime: TopMakesRow[];
+  monthly: TopMakesRow[];
+}
+
+type ChartData = RegistrationRow[] | MktShareCountryData[] | SCurveCountryData[] | TopMakesData;
+
+function flattenForCSV(data: ChartData): Record<string, unknown>[] {
+  if (Array.isArray(data)) return data as unknown as Record<string, unknown>[];
+  // TopMakesData — merge alltime + monthly
+  return [...data.alltime, ...data.monthly] as unknown as Record<string, unknown>[];
+}
+
+export default function Dashboard() {
+  const ds = useDataset();
+  const { countries, loading: countriesLoading } = useCountries(
+    ds.config.requiresMakes
+  );
+
+  const { data, loading, error } = useChartData<ChartData>({
+    dataset: ds.activeDataset,
+    countries: ds.selectedCountries,
+    fuelType: ds.fuelType,
+    make: ds.make,
+  });
+
+  const { download } = useDownloadCSV();
+  const hasData = data !== null && ds.selectedCountries.length > 0;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <div className="flex min-h-screen flex-col bg-gray-50">
+      <Header />
+
+      <div className="flex flex-1 flex-col gap-4 p-4 md:flex-row">
+        <Sidebar>
+          <div className="shadow-card space-y-4 rounded-lg bg-white p-4">
+            <DatasetSelector
+              value={ds.activeDataset}
+              onChange={ds.changeDataset}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            <CountrySelector
+              countries={countries}
+              selected={ds.selectedCountries}
+              multiSelect={ds.config.multiCountry}
+              onChange={ds.setSelectedCountries}
+            />
+            <RollingWindowSelector
+              value={ds.rollingWindow}
+              onChange={ds.setRollingWindow}
+            />
+
+            {ds.activeDataset === 1 && (
+              <MarketShareToggle
+                checked={ds.marketShareMode}
+                onChange={ds.setMarketShareMode}
+              />
+            )}
+
+            {ds.activeDataset === 2 && (
+              <>
+                <FuelTypeSelector
+                  value={ds.fuelType}
+                  onChange={ds.setFuelType}
+                />
+                <MakeSelector value={ds.make} onChange={ds.setMake} />
+              </>
+            )}
+
+            {ds.activeDataset === 3 && (
+              <BacktestingSelector
+                value={ds.backtestingMonths}
+                onChange={ds.setBacktestingMonths}
+              />
+            )}
+          </div>
+        </Sidebar>
+
+        <main className="flex-1">
+          <ChartContainer
+            loading={loading || countriesLoading}
+            error={error}
+            empty={!hasData}
           >
-            Documentation
-          </a>
-        </div>
-      </main>
+            {ds.activeDataset === 1 && data && (
+              <AreaChart
+                data={data as RegistrationRow[]}
+                rollingWindow={ds.rollingWindow}
+                displayPercentage={ds.marketShareMode}
+              />
+            )}
+
+            {ds.activeDataset === 2 && data && (
+              <MarketShareChart
+                countriesData={data as MktShareCountryData[]}
+                rollingWindow={ds.rollingWindow}
+              />
+            )}
+
+            {ds.activeDataset === 3 && data && (
+              <SCurveChart
+                countriesData={data as SCurveCountryData[]}
+                rollingWindow={ds.rollingWindow}
+                backtestingMonths={ds.backtestingMonths}
+              />
+            )}
+
+            {ds.activeDataset === 4 && data && (
+              <TopMakesChart
+                alltime={(data as TopMakesData).alltime}
+                monthly={(data as TopMakesData).monthly}
+                rollingWindow={ds.rollingWindow}
+              />
+            )}
+          </ChartContainer>
+
+          <div className="mt-2 flex justify-end">
+            <DownloadButton
+              visible={hasData}
+              onClick={() => download(flattenForCSV(data!), "gevt_data")}
+            />
+          </div>
+
+          <Footer />
+        </main>
+      </div>
     </div>
   );
 }
