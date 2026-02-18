@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Global EV Tracker Dashboard
 
-## Getting Started
+An interactive dashboard for exploring electric vehicle registration trends across countries worldwide. Built by [New AutoMotive](https://newautomotive.org/).
 
-First, run the development server:
+## Visualisations
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+The dashboard offers four main views, each designed to highlight a different aspect of the EV transition:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Monthly New Registrations** — Stacked area chart showing the volume of new vehicle registrations over time, broken down by fuel type (BEV, PHEV, HEV, ICE, Diesel, Petrol, etc.). Supports an optional market-share mode that displays each fuel type as a percentage of total registrations.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Manufacturers Comparison** — Compare the market share of a selected manufacturer across multiple countries over time. Filter by fuel type and manufacturer to explore competitive dynamics in the EV market.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **S-Curve Adoption** — Plots the classic S-curve of technology adoption for battery electric vehicles, showing BEV share against cumulative penetration. Includes a backtesting feature to evaluate how well the logistic curve fit historical data.
 
-## Learn More
+- **Top BEV Manufacturers** — Rankings of the leading battery electric vehicle manufacturers by registration volume, shown both as all-time cumulative totals and as a monthly rolling view.
 
-To learn more about Next.js, take a look at the following resources:
+All views include configurable rolling-window smoothing and CSV data export.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Tech Stack
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Framework**: Next.js (App Router) with TypeScript
+- **Styling**: Tailwind CSS + shadcn/ui
+- **Charts**: Apache ECharts
+- **Database**: Cloud SQL (MySQL)
+- **Deployment**: Google Cloud Run via GitHub Actions (Workload Identity Federation)
 
-## Deploy on Vercel
+## Data
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Data is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). See the [Methodology](public/GEVT_methodology.pdf) document for details on data sources and processing.
