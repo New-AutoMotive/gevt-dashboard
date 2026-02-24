@@ -8,7 +8,7 @@ export async function getCountries(withMakes: boolean): Promise<string[]> {
   const key = `countries:${table}`;
   return cachedQuery(key, async () => {
     const rows = await query<{ country: string }>(
-      `SELECT DISTINCT country FROM ${table} WHERE country NOT LIKE '%\\_%' ESCAPE '\\' ORDER BY country`
+      `SELECT DISTINCT country FROM ${table} WHERE country NOT LIKE '%\\_%' ORDER BY country`
     );
     return rows.map((r) => r.country);
   });
