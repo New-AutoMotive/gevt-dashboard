@@ -9,7 +9,11 @@ const pool = mysql.createPool({
     : { host: process.env.DB_HOST || "127.0.0.1" }),
   waitForConnections: true,
   connectionLimit: 10,
+  maxIdle: 2,
+  idleTimeout: 60000,
   connectTimeout: 10000,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 30000,
   dateStrings: true,
   typeCast: function (field, next) {
     if (
@@ -31,5 +35,13 @@ export async function query<T>(
   const [rows] = await pool.execute(sql, params);
   return rows as T[];
 }
+
+// Graceful shutdown: close pool connections when the process exits
+// (prevents orphaned MySQL sessions that block DDL operations)
+function gracefulShutdown() {
+  pool.end().catch(() => {});
+}
+process.on("SIGTERM", gracefulShutdown);
+process.on("SIGINT", gracefulShutdown);
 
 export default pool;
